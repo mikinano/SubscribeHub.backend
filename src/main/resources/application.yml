@@ -1,26 +1,21 @@
 spring:
   jpa:
     show-sql: true
+    hibernate:
+      ddl-auto: create
     properties:
       hibernate:
         format_sql: true
-    defer-datasource-initialization: true
   datasource:
-    url: jdbc:h2:mem:testdb
+    url: jdbc:h2:tcp://localhost/~/testdb
     username: sa
   h2:
     console:
       enabled: true
+application:
   security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: 515897914230-k10a66e38tq966omn72u1ff9m91r4rpp.apps.googleusercontent.com
-            client-secret: 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
-            scope:
-              - email
-              - profile
-jwt:
-  issuer: minitiger@korea.ac.kr
-  secret_key: subscribe-hub
+    jwt:
+      secret-key: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+      expiration: 86400000 # a day
+      refresh-token:
+        expiration: 604800000 # 7 days

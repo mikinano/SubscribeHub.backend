@@ -1,43 +1,69 @@
 package com.subscribehub.app.domain;
 
+import com.subscribehub.app.token.Token;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
-@Table(name = "users")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Getter
+import java.util.Collection;
+import java.util.List;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
-public class User extends BaseTimeEntity {
+@Table(name = "users")
+public class User implements UserDetails {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(updatable = false)
-    private Long id;
-
-    @Column(nullable = false, unique = true)
+    private Integer id;
     private String email;
+    private String password;
 
-    @Column(unique = true)
-    private String nickname;
+    @Enumerated(EnumType.STRING)
+    private Role role;
 
-    @Column
-    private String refreshToken;
+    @OneToMany(mappedBy = "user")
+    private List<Token> tokens;
 
-    @Builder
-    public User(String email, String nickname, String refreshToken) {
-        this.email = email;
-        this.nickname = nickname;
-        this.refreshToken = refreshToken;
-    }
-    public User updateNickname(String nickname) {
-        this.nickname = nickname;
-        return this;
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return role.getAuthorities();
     }
 
-    public User updateRefreshToken(String newRefreshToken) {
-        this.refreshToken = newRefreshToken;
-        return this;
+    @Override
+    public String getPassword() {
+        return password;
+    }
+
+    @Override
+    public String getUsername() {
+        return email;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
     }
 }
