@@ -9,9 +9,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Getter
-@Builder
 @NoArgsConstructor
-@AllArgsConstructor
 @Entity
 public class Article extends BaseTimeEntity {
     @Id
@@ -30,4 +28,12 @@ public class Article extends BaseTimeEntity {
     private String title;
 
     private LocalDateTime written_date;
+
+    public Article(User user, Site site, String url, String title, LocalDateTime written_date) {
+        this.user = user;
+        this.site = site;
+        this.url = url;
+        this.title = title;
+        this.written_date = written_date;
+    }
 }

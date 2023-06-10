@@ -7,9 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
-@Builder
 @NoArgsConstructor
-@AllArgsConstructor
 @Entity
 public class UserSite extends BaseTimeEntity {
     @Id
@@ -24,4 +22,15 @@ public class UserSite extends BaseTimeEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "site_id")
     private Site site;
+
+    private String postUrl;
+
+    private String nickname;
+
+    public UserSite(User user, Site site, String postUrl, String nickname) {
+        this.user = user;
+        this.site = site;
+        this.postUrl = postUrl;
+        this.nickname = nickname;
+    }
 }
