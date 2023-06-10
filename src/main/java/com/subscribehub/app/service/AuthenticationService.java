@@ -7,6 +7,7 @@ import com.subscribehub.app.domain.User;
 import com.subscribehub.app.dto.AuthenticationRequest;
 import com.subscribehub.app.dto.AuthenticationResponse;
 import com.subscribehub.app.dto.RegisterRequest;
+import com.subscribehub.app.global.exception.DuplicateUserException;
 import com.subscribehub.app.repository.UserRepository;
 import com.subscribehub.app.token.Token;
 import com.subscribehub.app.token.TokenRepository;
@@ -37,6 +38,9 @@ public class AuthenticationService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(Role.USER)
                 .build();
+        if (repository.findByEmail(user.getEmail()).isPresent()) {
+            throw new DuplicateUserException();
+        }
         var savedUser = repository.save(user);
         var jwtToken = jwtService.generateToken(user);
         var refreshToken = jwtService.generateRefreshToken(user);
@@ -54,6 +58,7 @@ public class AuthenticationService {
                         request.getPassword()
                 )
         );
+
         var user = repository.findByEmail(request.getEmail())
                 .orElseThrow();
         var jwtToken = jwtService.generateToken(user);

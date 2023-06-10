@@ -1,4 +1,4 @@
-package com.subscribehub.app.exception;
+package com.subscribehub.app.global;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
