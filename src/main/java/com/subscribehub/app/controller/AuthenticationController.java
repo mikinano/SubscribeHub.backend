@@ -35,8 +35,8 @@ public class AuthenticationController {
         return ResponseEntity.ok(service.authenticate(request));
     }
 
-    @PostMapping("/refresh-token")
-    public void refreshToken(
+    @PostMapping("/new-access-token")
+    public void newAccessToken(
             HttpServletRequest request,
             HttpServletResponse response
     ) throws IOException {
