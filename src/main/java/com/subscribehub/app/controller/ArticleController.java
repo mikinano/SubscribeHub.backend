@@ -36,8 +36,8 @@ public class ArticleController {
         return new ArticleResponseDto(pagingResult, updatedList);
     }
 
-    @GetMapping("/id")
-    public String getArticleContent(@RequestParam Long articleId) {
+    @GetMapping("/id/{articleId}")
+    public String getArticleContent(@PathVariable("articleId") Long articleId) {
         return crawlerService.getArticleContent(articleId);
     }
 }
