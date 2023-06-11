@@ -7,6 +7,7 @@ import com.subscribehub.app.dto.UserSiteDto;
 import com.subscribehub.app.service.SiteService;
 import com.subscribehub.app.service.UserService;
 import com.subscribehub.app.service.UserSiteService;
+import com.subscribehub.app.service.crawler.CrawlerService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +22,7 @@ public class SiteController {
     private final SiteService siteService;
     private final UserSiteService userSiteService;
     private final UserService userService;
+    private final CrawlerService crawlerService;
 
     @GetMapping
     public List<SiteDto> siteList() {
@@ -38,5 +40,10 @@ public class SiteController {
         userSiteService.putUserSite(user, request);
 
         return ResponseEntity.ok("사이트 등록 성공");
+    }
+
+    @GetMapping("/search-user-sites")
+    public List<UserSiteDto> searchUserSites(@RequestParam String searchWord, @RequestParam Long siteId) throws Exception {
+        return crawlerService.searchUserSites(searchWord, siteId);
     }
 }

@@ -1,10 +1,10 @@
 package com.subscribehub.app.service.crawler;
 
 import com.subscribehub.app.domain.Article;
-import com.subscribehub.app.domain.Site;
 import com.subscribehub.app.domain.User;
 import com.subscribehub.app.domain.UserSite;
 import com.subscribehub.app.dto.ArticleDto;
+import com.subscribehub.app.dto.UserSiteDto;
 import com.subscribehub.app.repository.ArticleRepository;
 import lombok.RequiredArgsConstructor;
 import org.jsoup.Jsoup;
@@ -14,6 +14,7 @@ import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -26,16 +27,20 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CrawlerService {
     private final ArticleRepository articleRepository;
-    public void doCrawling(User user, UserSite userSite, List<ArticleDto> updatedList) throws Exception {
-        if (userSite.getSite().getId() == 1) {
-            dcCrawling(user, userSite, updatedList);
+    public void doCrawling(User user, UserSite userSite, List<ArticleDto> updatedList, List<String> keywordList) throws Exception {
+        // SSL 체크
+        SetSSL.init();
+
+        Long userSiteId = userSite.getSite().getId();
+        if (userSiteId == 1) {
+            dcCrawling(user, userSite, updatedList, keywordList);
         }
     }
 
-    private void dcCrawling(User user, UserSite userSite, List<ArticleDto> updatedList) throws Exception {
+    private void dcCrawling(User user, UserSite userSite, List<ArticleDto> updatedList, List<String> keywordList) {
         List<Article> articleList = new ArrayList<>();
-        // SSL 체크
-        SetSSL.init();
+        final String siteUrl = "https://gall.dcinside.com/";
+
         try {
             // URL에 접속하여 HTML 문서 가져오기
             Document doc = Jsoup.connect(userSite.getUrl()).get();
@@ -62,17 +67,14 @@ public class CrawlerService {
 
                 // data-type이 "icon-notice"이거나 "일반"이 아닌 경우 제외
                 if (!dataType.equals("icon-notice") && post.select(".gall_subject").text().equals("일반")) {
-                    System.out.println("제목: " + title);
-                    System.out.println("링크: " + link);
-
                     // 게시글의 댓글수, 조회수, 추천수 가져오기
-                    Long commentCount = 0L;
-                    Element replyElement = post.selectFirst(".gall_count .reply_num");
+                    long commentCount = 0L;
+                    Element replyElement = post.selectFirst(".gall_tit .reply_numbox");
                     if (replyElement != null) {
-                        commentCount = Long.parseLong(replyElement.text());
+                        commentCount = Long.parseLong(replyElement.text().replaceAll("[\\[\\]]", ""));
                     }
 
-                    Element viewElement = post.selectFirst(".gall_count .gall_count_view");
+                    Element viewElement = post.selectFirst(".gall_count");
                     Long viewCount = Long.parseLong(viewElement.text());
 
                     Element recommendElement = post.selectFirst(".gall_recommend");
@@ -83,8 +85,8 @@ public class CrawlerService {
                     String dateString = dateElement.attr("title");
 
                     LocalDateTime date = LocalDateTime.parse(dateString, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-                    System.out.println("날짜: " + date);
-                    articleList.add(new Article(user, userSite.getSite(), userSite, articleNum, link, title, writer, date, viewCount, recommendCount, commentCount));
+
+                    articleList.add(new Article(user, userSite.getSite(), userSite, articleNum, siteUrl + link, title, writer, date, viewCount, recommendCount, commentCount));
                 }
             }
         } catch (Exception e) {
@@ -95,35 +97,61 @@ public class CrawlerService {
 
         // 한 번의 Select 쿼리로 해당 Article 가져오기
         List<Article> existingArticles = articleRepository.findByUserSiteAndArticleNumIn(userSite, articleNums);
+        System.out.println("existingArticles = " + existingArticles);
 
         // 이미 존재하는 게시글인지 확인하여 저장하기
         for (Article article : articleList) {
-            if (!existingArticles.contains(article)) {
+            boolean flag = true;
+            for (Article existingArticle : existingArticles) {
+                if (existingArticle.getArticleNum().equals(article.getArticleNum())) {
+                    flag = false;
+                    break;
+                }
+            }
+
+            if (flag) {
                 articleRepository.save(article);
-                updatedList.add(new ArticleDto(
-                        article.getArticleNum(),
-                        article.getUrl(),
-                        article.getUserSite().getNickname(),
-                        article.getTitle(),
-                        article.getWriter(),
-                        article.getWritten_date(),
-                        article.getViewCount(),
-                        article.getRecommendCount(),
-                        article.getCommentCount()));
+
+                for (String keyword : keywordList) {
+                    if (article.getTitle().contains(keyword)) {
+                        updatedList.add(new ArticleDto(
+                                article.getArticleNum(),
+                                article.getUrl(),
+                                article.getUserSite().getNickname(),
+                                article.getTitle(),
+                                article.getWriter(),
+                                article.getWritten_date(),
+                                article.getViewCount(),
+                                article.getRecommendCount(),
+                                article.getCommentCount()));
+                        break;
+                    }
+                }
             }
         }
     }
 
-    public String getArticleContent(Long articleId) {
-        try {
-            Optional<Article> article = articleRepository.findById(articleId);
-            String url = "";
-            if (article.isPresent()) {
-                url = article.get().getUrl();
-            } else {
-                return "잘못된 게시글 ID입니다.";
-            }
+    public String getArticleContent(Long articleId) throws Exception {
+        Optional<Article> article = articleRepository.findById(articleId);
+        String url = "";
+        if (article.isPresent()) {
+            url = article.get().getUrl();
+        } else {
+            return "잘못된 게시글 ID입니다.";
+        }
 
+        // SSL 체크
+        SetSSL.init();
+
+        if (article.get().getSite().getId() == 1) {
+            return getDcArticleContent(url);
+        } else {
+            return "존재하지 않는 사이트입니다.";
+        }
+    }
+
+    public String getDcArticleContent(String url) {
+        try {
             // URL에 접속하여 HTML 문서 가져오기
             Document doc = Jsoup.connect(url).get();
 
@@ -137,6 +165,69 @@ public class CrawlerService {
         } catch (Exception e) {
             e.printStackTrace();
             return "오류로 인해 게시글을 불러올 수 없습니다.";
+        }
+    }
+
+    public List<UserSiteDto> searchUserSites(String searchWord, Long siteId) throws Exception {
+        // SSL 체크
+        SetSSL.init();
+
+        if (siteId == 1) {
+            return searchDcUserSites(searchWord);
+        } else if (siteId == 2) {
+            return searchPPUserSites(searchWord);
+        } else {
+            return null;
+        }
+    }
+
+    private List<UserSiteDto> searchDcUserSites(String searchWord) {
+        String url = "https://search.dcinside.com/gallery/q/" + searchWord;
+        List<UserSiteDto> list = new ArrayList<>();
+
+        try {
+            // HTTP GET 요청을 보내고 HTML 문서를 가져옵니다.
+            Document doc = Jsoup.connect(url).get();
+
+            // 갤러리 검색 결과를 가져옵니다.
+            Elements galleries = doc.select(".integrate_cont_list li");
+
+            // 갤러리 정보를 출력합니다.
+            for (Element gallery : galleries) {
+                Element anchor = gallery.selectFirst("a.gallname_txt");
+                String name = anchor.text();
+                String href = anchor.attr("href");
+
+                list.add(new UserSiteDto(href, name));
+            }
+
+            return list;
+        } catch (IOException e) {
+            e.printStackTrace();
+
+            return null;
+        }
+    }
+
+    private List<UserSiteDto> searchPPUserSites(String searchWord) {
+        final String siteUrl = "https://www.ppomppu.co.kr";
+        List<UserSiteDto> list = new ArrayList<>();
+
+        try {
+            String url = "https://www.ppomppu.co.kr/search_bbs.php?keyword=%C0%DA%C0%AF";
+            Document doc = Jsoup.connect(url).get();
+
+            Elements boardItems = doc.select(".results_board#search_bbs_name_result .conts ul li");
+            for (Element boardItem : boardItems) {
+                String boardName = boardItem.selectFirst(".title").text();
+                String boardLink = siteUrl + boardItem.selectFirst("a").attr("href");
+
+                list.add(new UserSiteDto(boardLink, boardName));
+            }
+            return list;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
     }
 }

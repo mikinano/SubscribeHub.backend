@@ -3,6 +3,7 @@ package com.subscribehub.app.service;
 import com.subscribehub.app.domain.User;
 import com.subscribehub.app.domain.UserSite;
 import com.subscribehub.app.dto.AddUserSiteRequest;
+import com.subscribehub.app.dto.UserSiteDto;
 import com.subscribehub.app.repository.SiteRepository;
 import com.subscribehub.app.repository.UserRepository;
 import com.subscribehub.app.repository.UserSiteAdvancedRepository;

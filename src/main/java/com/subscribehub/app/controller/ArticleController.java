@@ -4,6 +4,7 @@ import com.subscribehub.app.domain.UserSite;
 import com.subscribehub.app.dto.ArticleDto;
 import com.subscribehub.app.dto.ArticleResponseDto;
 import com.subscribehub.app.service.ArticleService;
+import com.subscribehub.app.service.KeywordService;
 import com.subscribehub.app.service.UserSiteService;
 import com.subscribehub.app.service.crawler.CrawlerService;
 import lombok.AllArgsConstructor;
@@ -22,22 +23,28 @@ public class ArticleController {
     private final ArticleService articleService;
     private final CrawlerService crawlerService;
     private final UserSiteService userSiteService;
+    private final KeywordService keywordService;
 
     @GetMapping
     public ArticleResponseDto searchArticle(@RequestParam Long siteId, Pageable pageable, Principal principal) throws Exception {
+        if (siteId == 0) {
+            siteId = null;
+        }
         List<UserSite> userSiteList = userSiteService.userSiteList(principal.getName());
         List<ArticleDto> updatedList = new ArrayList<>();
+        List<String> keywordList = keywordService.findKeywordListByUser(principal.getName());
+
         for (UserSite userSite : userSiteList) {
-            crawlerService.doCrawling(userSite.getUser(), userSite, updatedList);
+            crawlerService.doCrawling(userSite.getUser(), userSite, updatedList, keywordList);
         }
 
-        Page<ArticleDto> pagingResult = articleService.searchPagination(siteId, pageable, principal.getName());
+        Page<ArticleDto> pagingResult = articleService.searchPagination(siteId, pageable, principal.getName(), keywordList);
 
         return new ArticleResponseDto(pagingResult, updatedList);
     }
 
     @GetMapping("/id/{articleId}")
-    public String getArticleContent(@PathVariable("articleId") Long articleId) {
+    public String getArticleContent(@PathVariable("articleId") Long articleId) throws Exception {
         return crawlerService.getArticleContent(articleId);
     }
 }

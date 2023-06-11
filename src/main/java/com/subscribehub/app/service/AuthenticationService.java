@@ -7,6 +7,7 @@ import com.subscribehub.app.domain.User;
 import com.subscribehub.app.dto.AuthenticationRequest;
 import com.subscribehub.app.dto.AuthenticationResponse;
 import com.subscribehub.app.dto.RegisterRequest;
+import com.subscribehub.app.global.ErrorResponse;
 import com.subscribehub.app.global.exception.DuplicateUserException;
 import com.subscribehub.app.repository.UserRepository;
 import com.subscribehub.app.token.Token;
@@ -24,6 +25,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.util.Optional;
+
+import static jakarta.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 @Service
 @RequiredArgsConstructor
@@ -96,7 +100,7 @@ public class AuthenticationService {
             var user = this.repository.findByEmail(userEmail)
                     .orElseThrow();
             Token userRefreshToken = tokenRepository.findByUser(user).orElse(null);
-            if (jwtService.isTokenValid(refreshToken, user)
+            if (jwtService.extractTokenType(refreshToken).equals("refresh") && jwtService.isTokenValid(refreshToken, user)
                     && userRefreshToken != null && userRefreshToken.getToken().equals(refreshToken)) {
                 var accessToken = jwtService.generateToken(user);
                 var authResponse = AuthenticationResponse.builder()
@@ -104,6 +108,12 @@ public class AuthenticationService {
                         .refreshToken(refreshToken)
                         .build();
                 new ObjectMapper().writeValue(response.getOutputStream(), authResponse);
+            } else {
+                response.setStatus(SC_BAD_REQUEST);
+                response.setContentType(APPLICATION_JSON_VALUE);
+                response.setCharacterEncoding("utf-8");
+                ErrorResponse errorResponse = new ErrorResponse(400, "유효하지 않은 JWT 토큰입니다.");
+                new ObjectMapper().writeValue(response.getWriter(), errorResponse);
             }
         }
     }

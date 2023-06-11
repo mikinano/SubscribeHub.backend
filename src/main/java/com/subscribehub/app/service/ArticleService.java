@@ -19,9 +19,9 @@ import java.util.List;
 @Transactional
 public class ArticleService {
     private final ArticleAdvancedRepository articleAdvancedRepository;
-    private final KeywordRepository keywordRepository;
+    private final KeywordService keywordService;
 
-    public Page<ArticleDto> searchPagination(Long siteId, Pageable pageable, String userEmail) {
-        return articleAdvancedRepository.searchPagination(userEmail, siteId, pageable, keywordRepository.findKeywordListByUser(userEmail));
+    public Page<ArticleDto> searchPagination(Long siteId, Pageable pageable, String userEmail, List<String> keywordList) {
+        return articleAdvancedRepository.searchPagination(userEmail, siteId, pageable, keywordList);
     }
 }

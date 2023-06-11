@@ -29,4 +29,7 @@ public class KeywordService {
             keywordRepository.save(new Keyword(user, keyword));
         }
     }
+    public List<String> findKeywordListByUser(String userEmail) {
+        return keywordRepository.findKeywordListByUser(userEmail);
+    }
 }
