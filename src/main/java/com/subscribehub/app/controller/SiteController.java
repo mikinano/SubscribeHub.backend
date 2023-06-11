@@ -27,7 +27,7 @@ public class SiteController {
         return siteService.siteList().stream().map((site) -> new SiteDto(site.getId(), site.getUrl(), site.getSiteNickname())).toList();
     }
 
-    @GetMapping("/userSites")
+    @GetMapping("/user-sites")
     public List<UserSiteDto> userSiteList(Principal principal) {
         return userSiteService.userSiteList(principal.getName()).stream().map((userSite) -> new UserSiteDto(userSite.getUrl(), userSite.getNickname())).toList();
     }
@@ -37,6 +37,6 @@ public class SiteController {
         User user = userService.findOneByEmail(principal.getName());
         userSiteService.putUserSite(user, request);
 
-        return ResponseEntity.ok("회원가입 성공");
+        return ResponseEntity.ok("사이트 등록 성공");
     }
 }
