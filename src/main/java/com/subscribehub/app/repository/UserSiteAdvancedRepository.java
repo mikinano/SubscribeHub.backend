@@ -20,13 +20,4 @@ public class UserSiteAdvancedRepository extends Querydsl4RepositorySupport {
     public UserSiteAdvancedRepository() {
         super(UserSite.class);
     }
-
-    public List<UserSiteDto> searchSiteDto(String userEmail) {
-        return select(new QUserSiteDto(site.siteUrl.concat(userSite.postUrl), site, user))
-                .from(userSite)
-                .join(userSite.site, site)
-                .join(userSite.user, user)
-                .where(user.email.eq(userEmail))
-                .fetch();
-    }
 }
