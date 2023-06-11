@@ -25,6 +25,7 @@ public class SecurityConfiguration {
     private final AuthenticationProvider authenticationProvider;
     private final LogoutHandler logoutHandler;
     private final AccessDeniedHandler accessDeniedHandler;
+    private final CorsConfig corsConfig;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -50,6 +51,7 @@ public class SecurityConfiguration {
 
 
         http.authenticationProvider(authenticationProvider)
+                .addFilter(corsConfig.corsFilter()) // ** CorsFilter 등록 **
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .logout((logout) -> logout
                         .logoutUrl("/api/auth/logout")
