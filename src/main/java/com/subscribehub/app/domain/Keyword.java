@@ -1,15 +1,11 @@
 package com.subscribehub.app.domain;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
-@Builder
 @NoArgsConstructor
-@AllArgsConstructor
 @Entity
 public class Keyword extends BaseTimeEntity {
     @Id
@@ -22,4 +18,9 @@ public class Keyword extends BaseTimeEntity {
     private User user;
 
     private String wordString;
+
+    public Keyword(User user, String wordString) {
+        this.user = user;
+        this.wordString = wordString;
+    }
 }
