@@ -1,23 +1,36 @@
 package com.subscribehub.app.dto;
 
 import com.querydsl.core.annotations.QueryProjection;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Data
 public class ArticleDto {
-    private String completeUrl;
+    private Long articleNum;
+    private String url;
+
+    private String nickname;
     private String title;
+
+    private String writer;
+
     private LocalDateTime written_date;
 
+    private Long viewCount;
+    private Long recommendCount;
+    private Long commentCount;
+
     @QueryProjection
-    public ArticleDto(String completeUrl, String title, LocalDateTime written_date) {
-        this.completeUrl = completeUrl;
+    public ArticleDto(Long articleNum, String url, String nickname, String title, String writer, LocalDateTime written_date, Long viewCount, Long recommendCount, Long commentCount) {
+        this.articleNum = articleNum;
+        this.url = url;
+        this.nickname = nickname;
         this.title = title;
+        this.writer = writer;
         this.written_date = written_date;
+        this.viewCount = viewCount;
+        this.recommendCount = recommendCount;
+        this.commentCount = commentCount;
     }
 }

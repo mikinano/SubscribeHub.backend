@@ -6,7 +6,7 @@ import lombok.Data;
 public class AddUserSiteRequest {
     private Long siteId;
 
-    private String postUrl;
+    private String url;
 
     private String nickname;
 }

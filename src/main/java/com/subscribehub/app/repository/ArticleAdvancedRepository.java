@@ -15,6 +15,7 @@ import java.util.List;
 import static com.subscribehub.app.domain.QArticle.article;
 import static com.subscribehub.app.domain.QSite.site;
 import static com.subscribehub.app.domain.QUser.user;
+import static com.subscribehub.app.domain.QUserSite.userSite;
 import static org.springframework.util.StringUtils.hasText;
 
 @Repository
@@ -23,22 +24,28 @@ public class ArticleAdvancedRepository extends Querydsl4RepositorySupport {
         super(Article.class);
     }
 
-    public Page<ArticleDto> searchPagination(ArticleSearchCondition condition, Pageable pageable) {
+    public Page<ArticleDto> searchPagination(String userEmail, Long siteId, Pageable pageable, List<String> keywordList) {
         return applyPagination(pageable, contentQuery -> contentQuery
-                .select(new QArticleDto(site.siteUrl.concat(article.url), article.title, article.written_date))
+                .select(new QArticleDto(article.articleNum, article.url, userSite.nickname,
+                        article.title, article.writer, article.written_date,
+                        article.viewCount, article.recommendCount, article.commentCount))
                 .from(article)
+                .join(article.userSite, userSite)
                 .join(article.site, site)
                 .join(article.user, user)
                 .where(
-                        emailEq(condition.getEmail()),
-                        titleContainsKeywords(condition.getKeywordList()),
-                        siteEq(condition.getSiteId())
+                        emailEq(userEmail),
+                        titleContainsKeywords(keywordList),
+                        siteEq(siteId)
                 ), countQuery -> countQuery
                 .selectFrom(article)
+                .join(article.userSite, userSite)
                 .join(article.site, site)
+                .join(article.user, user)
                 .where(
-                        titleContainsKeywords(condition.getKeywordList()),
-                        siteEq(condition.getSiteId())
+                        emailEq(userEmail),
+                        titleContainsKeywords(keywordList),
+                        siteEq(siteId)
                 )
         );
     }

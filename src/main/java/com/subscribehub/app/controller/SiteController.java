@@ -1,19 +1,18 @@
 package com.subscribehub.app.controller;
 
-import com.subscribehub.app.domain.Site;
 import com.subscribehub.app.domain.User;
-import com.subscribehub.app.domain.UserSite;
 import com.subscribehub.app.dto.AddUserSiteRequest;
+import com.subscribehub.app.dto.SiteDto;
+import com.subscribehub.app.dto.UserSiteDto;
 import com.subscribehub.app.service.SiteService;
 import com.subscribehub.app.service.UserService;
 import com.subscribehub.app.service.UserSiteService;
 import lombok.AllArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/sites")
@@ -23,15 +22,21 @@ public class SiteController {
     private final UserSiteService userSiteService;
     private final UserService userService;
 
-    @PostMapping
-    public String addUserSite(@RequestBody AddUserSiteRequest addUserSiteRequest, Principal principal) {
-        System.out.println("addUserSiteRequest = " + addUserSiteRequest);
-        User user = userService.findOneByEmail(principal.getName());
-        Site site = siteService.findOneById(addUserSiteRequest.getSiteId());
-        System.out.println(addUserSiteRequest.getPostUrl());
-        System.out.println(addUserSiteRequest.getNickname());
-        userSiteService.save(new UserSite(user, site, addUserSiteRequest.getPostUrl(), addUserSiteRequest.getNickname()));
+    @GetMapping
+    public List<SiteDto> siteList() {
+        return siteService.siteList().stream().map((site) -> new SiteDto(site.getId(), site.getUrl(), site.getSiteNickname())).toList();
+    }
 
-        return "test";
+    @GetMapping("/userSites")
+    public List<UserSiteDto> userSiteList(Principal principal) {
+        return userSiteService.userSiteList(principal.getName()).stream().map((userSite) -> new UserSiteDto(userSite.getUrl(), userSite.getNickname())).toList();
+    }
+
+    @PutMapping
+    public ResponseEntity<String> addUserSite(@RequestBody List<AddUserSiteRequest> request, Principal principal) {
+        User user = userService.findOneByEmail(principal.getName());
+        userSiteService.putUserSite(user, request);
+
+        return ResponseEntity.ok("회원가입 성공");
     }
 }

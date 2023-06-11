@@ -7,16 +7,13 @@ import lombok.Data;
 
 @Data
 public class UserSiteDto {
-    private String siteFullUrl;
+    private String url;
 
-    private Site site;
-
-    private User user;
+    private String nickname;
 
     @QueryProjection
-    public UserSiteDto(String siteFullUrl, Site site, User user) {
-        this.siteFullUrl = siteFullUrl;
-        this.site = site;
-        this.user = user;
+    public UserSiteDto(String url, String nickname) {
+        this.url = url;
+        this.nickname = nickname;
     }
 }

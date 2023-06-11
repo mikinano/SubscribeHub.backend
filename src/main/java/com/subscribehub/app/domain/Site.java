@@ -20,7 +20,7 @@ public class Site {
     @Column(name = "site_id")
     private Long id;
 
-    private String siteUrl;
+    private String url;
 
     private String siteNickname;
 

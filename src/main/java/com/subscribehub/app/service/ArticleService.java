@@ -1,5 +1,7 @@
 package com.subscribehub.app.service;
 
+import com.subscribehub.app.domain.Article;
+import com.subscribehub.app.domain.UserSite;
 import com.subscribehub.app.dto.ArticleDto;
 import com.subscribehub.app.dto.ArticleSearchCondition;
 import com.subscribehub.app.repository.ArticleAdvancedRepository;
@@ -10,6 +12,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -17,8 +21,7 @@ public class ArticleService {
     private final ArticleAdvancedRepository articleAdvancedRepository;
     private final KeywordRepository keywordRepository;
 
-    public Page<ArticleDto> searchPagination(ArticleSearchCondition condition, Pageable pageable, String userEmail) {
-        condition.setKeywordList(keywordRepository.findKeywordListByUser(userEmail));
-        return articleAdvancedRepository.searchPagination(condition, pageable);
+    public Page<ArticleDto> searchPagination(Long siteId, Pageable pageable, String userEmail) {
+        return articleAdvancedRepository.searchPagination(userEmail, siteId, pageable, keywordRepository.findKeywordListByUser(userEmail));
     }
 }

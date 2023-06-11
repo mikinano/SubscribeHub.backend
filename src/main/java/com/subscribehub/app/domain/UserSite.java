@@ -23,14 +23,14 @@ public class UserSite extends BaseTimeEntity {
     @JoinColumn(name = "site_id")
     private Site site;
 
-    private String postUrl;
+    private String url;
 
     private String nickname;
 
-    public UserSite(User user, Site site, String postUrl, String nickname) {
+    public UserSite(User user, Site site, String url, String nickname) {
         this.user = user;
         this.site = site;
-        this.postUrl = postUrl;
+        this.url = url;
         this.nickname = nickname;
     }
 }
