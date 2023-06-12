@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Getter
 @NoArgsConstructor
 @Entity
@@ -22,6 +24,9 @@ public class UserSite extends BaseTimeEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "site_id")
     private Site site;
+
+    @OneToMany(mappedBy = "userSite", cascade = CascadeType.ALL)
+    private List<Article> articleList;
 
     private String url;
 

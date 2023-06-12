@@ -1,11 +1,14 @@
 package com.subscribehub.app.service.crawler;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.subscribehub.app.domain.Article;
 import com.subscribehub.app.domain.User;
 import com.subscribehub.app.domain.UserSite;
 import com.subscribehub.app.dto.ArticleDto;
 import com.subscribehub.app.dto.UserSiteDto;
 import com.subscribehub.app.repository.ArticleRepository;
+import com.subscribehub.app.service.KeywordService;
 import lombok.RequiredArgsConstructor;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -15,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -27,17 +31,20 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CrawlerService {
     private final ArticleRepository articleRepository;
-    public void doCrawling(User user, UserSite userSite, List<ArticleDto> updatedList, List<String> keywordList) throws Exception {
+    private final KeywordService keywordService;
+    public void doCrawling(User user, UserSite userSite) throws Exception {
         // SSL 체크
         SetSSL.init();
 
-        Long userSiteId = userSite.getSite().getId();
-        if (userSiteId == 1) {
-            dcCrawling(user, userSite, updatedList, keywordList);
+        Long siteId = userSite.getSite().getId();
+        if (siteId == 1) {
+            dcCrawling(user, userSite);
+        } else if (siteId == 2) {
+//            fmKorCrawling(user, userSite);
         }
     }
 
-    private void dcCrawling(User user, UserSite userSite, List<ArticleDto> updatedList, List<String> keywordList) {
+    private void dcCrawling(User user, UserSite userSite) {
         List<Article> articleList = new ArrayList<>();
         final String siteUrl = "https://gall.dcinside.com/";
 
@@ -50,23 +57,25 @@ public class CrawlerService {
 
             // 각 게시글에 대한 정보 출력
             for (Element post : posts) {
-                // 게시글의 data-type 값 가져오기
-                String dataType = post.attr("data-type");
-
-                // 게시글의 번호, 제목, 링크 가져오기
                 Element numberElement = post.selectFirst(".gall_num");
-                Long articleNum = Long.parseLong(numberElement.text());
+                Element checkArticle = post.selectFirst(".gall_tit a em");
 
-                Element linkElement = post.selectFirst(".gall_tit a");
-                String title = linkElement.text();
-                String link = linkElement.attr("href");
+                // 게시글 필터링
+                if (numberElement.text().matches("-?\\d+")
+                        && !(checkArticle.hasClass("icon_ad")
+                            || checkArticle.hasClass("icon_survey")
+                            || checkArticle.hasClass("icon_notice"))) {
+                    // 게시글의 번호, 제목, 링크 가져오기
+                    Long articleNum = Long.parseLong(numberElement.text());
 
-                // 게시글의 글쓴이 가져오기
-                Element writerElement = post.selectFirst(".gall_writer");
-                String writer = writerElement.text();
+                    Element linkElement = post.selectFirst(".gall_tit a");
+                    String title = linkElement.text();
+                    String link = siteUrl + linkElement.attr("href");
 
-                // data-type이 "icon-notice"이거나 "일반"이 아닌 경우 제외
-                if (!dataType.equals("icon-notice") && post.select(".gall_subject").text().equals("일반")) {
+                    // 게시글의 글쓴이 가져오기
+                    Element writerElement = post.selectFirst(".gall_writer");
+                    String writer = writerElement.text();
+
                     // 게시글의 댓글수, 조회수, 추천수 가져오기
                     long commentCount = 0L;
                     Element replyElement = post.selectFirst(".gall_tit .reply_numbox");
@@ -86,7 +95,7 @@ public class CrawlerService {
 
                     LocalDateTime date = LocalDateTime.parse(dateString, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
-                    articleList.add(new Article(user, userSite.getSite(), userSite, articleNum, siteUrl + link, title, writer, date, viewCount, recommendCount, commentCount));
+                    articleList.add(new Article(user, userSite.getSite(), userSite, articleNum, link, title, writer, date, viewCount, recommendCount, commentCount));
                 }
             }
         } catch (Exception e) {
@@ -97,7 +106,6 @@ public class CrawlerService {
 
         // 한 번의 Select 쿼리로 해당 Article 가져오기
         List<Article> existingArticles = articleRepository.findByUserSiteAndArticleNumIn(userSite, articleNums);
-        System.out.println("existingArticles = " + existingArticles);
 
         // 이미 존재하는 게시글인지 확인하여 저장하기
         for (Article article : articleList) {
@@ -111,22 +119,6 @@ public class CrawlerService {
 
             if (flag) {
                 articleRepository.save(article);
-
-                for (String keyword : keywordList) {
-                    if (article.getTitle().contains(keyword)) {
-                        updatedList.add(new ArticleDto(
-                                article.getArticleNum(),
-                                article.getUrl(),
-                                article.getUserSite().getNickname(),
-                                article.getTitle(),
-                                article.getWriter(),
-                                article.getWritten_date(),
-                                article.getViewCount(),
-                                article.getRecommendCount(),
-                                article.getCommentCount()));
-                        break;
-                    }
-                }
             }
         }
     }
@@ -175,7 +167,7 @@ public class CrawlerService {
         if (siteId == 1) {
             return searchDcUserSites(searchWord);
         } else if (siteId == 2) {
-            return searchPPUserSites(searchWord);
+            return searchFmKorUserSites(searchWord);
         } else {
             return null;
         }
@@ -209,25 +201,50 @@ public class CrawlerService {
         }
     }
 
-    private List<UserSiteDto> searchPPUserSites(String searchWord) {
-        final String siteUrl = "https://www.ppomppu.co.kr";
-        List<UserSiteDto> list = new ArrayList<>();
+    private List<UserSiteDto> searchFmKorUserSites(String searchWord) {
+        String siteUrl = "https://www.fmkorea.com/";
+        ObjectMapper objectMapper = new ObjectMapper();
+        List<UserSiteDto> userSiteDtoList = new ArrayList<>();
 
         try {
-            String url = "https://www.ppomppu.co.kr/search_bbs.php?keyword=%C0%DA%C0%AF";
-            Document doc = Jsoup.connect(url).get();
+            URL jsonUrl = new URL("https://www.fmkorea.com/files/board_search_data.json");
+            JsonNode root = objectMapper.readTree(jsonUrl);
 
-            Elements boardItems = doc.select(".results_board#search_bbs_name_result .conts ul li");
-            for (Element boardItem : boardItems) {
-                String boardName = boardItem.selectFirst(".title").text();
-                String boardLink = siteUrl + boardItem.selectFirst("a").attr("href");
-
-                list.add(new UserSiteDto(boardLink, boardName));
+            if (root.isArray()) {
+                for (JsonNode node : root) {
+                    String url = siteUrl + node.get("mid").asText();
+                    String nickname = node.get("label").asText();
+                    UserSiteDto userSiteDto = new UserSiteDto(url, nickname);
+                    userSiteDtoList.add(userSiteDto);
+                }
             }
-            return list;
-        } catch (Exception e) {
+
+            return userSiteDtoList;
+        } catch (IOException e) {
             e.printStackTrace();
             return null;
         }
     }
+
+//    private List<UserSiteDto> searchPpUserSites(String searchWord) {
+//        final String siteUrl = "https://www.ppomppu.co.kr";
+//        List<UserSiteDto> list = new ArrayList<>();
+//
+//        try {
+//            String url = "https://www.ppomppu.co.kr/search_bbs.php?keyword=%C0%DA%C0%AF";
+//            Document doc = Jsoup.connect(url).get();
+//
+//            Elements boardItems = doc.select(".results_board#search_bbs_name_result .conts ul li");
+//            for (Element boardItem : boardItems) {
+//                String boardName = boardItem.selectFirst(".title").text();
+//                String boardLink = siteUrl + boardItem.selectFirst("a").attr("href");
+//
+//                list.add(new UserSiteDto(boardLink, boardName));
+//            }
+//            return list;
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return null;
+//        }
+//    }
 }

@@ -10,9 +10,11 @@ import com.subscribehub.app.service.crawler.CrawlerService;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,21 +28,20 @@ public class ArticleController {
     private final KeywordService keywordService;
 
     @GetMapping
-    public ArticleResponseDto searchArticle(@RequestParam Long siteId, Pageable pageable, Principal principal) throws Exception {
-        if (siteId == 0) {
-            siteId = null;
-        }
+    public Page<ArticleDto> searchArticle(
+            @RequestParam(required = false) Long siteId,
+            @RequestParam(name = "keyword", required = false) List<String> keywordList,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            Pageable pageable,
+            Principal principal) throws Exception {
         List<UserSite> userSiteList = userSiteService.userSiteList(principal.getName());
-        List<ArticleDto> updatedList = new ArrayList<>();
-        List<String> keywordList = keywordService.findKeywordListByUser(principal.getName());
 
         for (UserSite userSite : userSiteList) {
-            crawlerService.doCrawling(userSite.getUser(), userSite, updatedList, keywordList);
+            crawlerService.doCrawling(userSite.getUser(), userSite);
         }
 
-        Page<ArticleDto> pagingResult = articleService.searchPagination(siteId, pageable, principal.getName(), keywordList);
-
-        return new ArticleResponseDto(pagingResult, updatedList);
+        return articleService.searchPagination(siteId, pageable, principal.getName(), keywordList, startDate, endDate);
     }
 
     @GetMapping("/id/{articleId}")

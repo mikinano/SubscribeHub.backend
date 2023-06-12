@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -21,7 +22,7 @@ public class ArticleService {
     private final ArticleAdvancedRepository articleAdvancedRepository;
     private final KeywordService keywordService;
 
-    public Page<ArticleDto> searchPagination(Long siteId, Pageable pageable, String userEmail, List<String> keywordList) {
-        return articleAdvancedRepository.searchPagination(userEmail, siteId, pageable, keywordList);
+    public Page<ArticleDto> searchPagination(Long siteId, Pageable pageable, String userEmail, List<String> keywordList, LocalDateTime startDate, LocalDateTime endDate) {
+        return articleAdvancedRepository.searchPagination(userEmail, siteId, pageable, keywordList, startDate, endDate);
     }
 }
