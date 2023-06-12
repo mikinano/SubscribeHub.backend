@@ -23,7 +23,7 @@ public class KeywordService {
 
     public void putKeywords(List<String> keywords, String userEmail) {
         User user = userRepository.findOneByEmail(userEmail);
-        keywordRepository.removeAllById(user.getId());
+        keywordRepository.removeAllByUser(user);
 
         for (String keyword : keywords) {
             keywordRepository.save(new Keyword(user, keyword));
