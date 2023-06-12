@@ -48,7 +48,7 @@ public class CrawlerService {
 
     private void dcCrawling(User user, UserSite userSite) {
         List<Article> articleList = new ArrayList<>();
-        final String siteUrl = "https://gall.dcinside.com/";
+        final String siteUrl = "https://gall.dcinside.com";
 
         try {
             // URL에 접속하여 HTML 문서 가져오기
@@ -131,6 +131,7 @@ public class CrawlerService {
 
     private void fmKorCrawling(User user, UserSite userSite) {
         List<Article> articleList = new ArrayList<>();
+        String siteUrl = "https://www.fmkorea.com/";
         try {
             Document doc = Jsoup.connect(userSite.getUrl()).get();
 
@@ -144,7 +145,7 @@ public class CrawlerService {
                     String title = titleElem.text();
 
                     // 게시글 링크
-                    String link = userSite.getUrl() + "/" + articleNum;
+                    String link = siteUrl + articleNum;
 
                     // 게시글 글쓴이
                     String writer = post.selectFirst(".author").text();
@@ -193,8 +194,12 @@ public class CrawlerService {
         // SSL 체크
         SetSSL.init();
 
-        if (article.get().getSite().getId() == 1) {
+        Long siteId = article.get().getSite().getId();
+
+        if (siteId == 1) {
             return getDcArticleContent(url);
+        } else if (siteId == 2) {
+            return getFmKorArticleContent(url);
         } else {
             return "존재하지 않는 사이트입니다.";
         }
@@ -206,12 +211,46 @@ public class CrawlerService {
             Document doc = Jsoup.connect(url).get();
 
             // 게시글 내용을 포함한 요소 선택하기
-            Element contentElement = doc.selectFirst(".write_div");
-            if (contentElement != null) {
-                return contentElement.text();
-            } else {
-                return "게시글 내용을 가져올 수 없습니다.";
+            Element element = doc.selectFirst(".write_div");
+            StringBuilder sb = new StringBuilder();
+            if (element != null) {
+                for (Element child : element.children()) {
+                    System.out.println("child = " + child);
+                    if (!child.hasText()) {
+                        sb.append("<br>");
+                    } else {
+                        sb.append(child.text());
+                    }
+                }
             }
+
+            return sb.toString().replaceAll("(<br>\\s*)+", "<br>");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "오류로 인해 게시글을 불러올 수 없습니다.";
+        }
+    }
+
+    public String getFmKorArticleContent(String url) {
+        try {
+            Document doc = Jsoup.connect(url).get();
+            Element element = doc.selectFirst(".content_dummy article .xe_content");
+            StringBuilder sb = new StringBuilder();
+            if (element != null) {
+                if (element.childrenSize() == 0) {
+                    sb.append(element.text());
+                } else {
+                    for (Element child : element.children()) {
+                        if (!child.hasText()) {
+                            sb.append("<br>");
+                        } else {
+                            sb.append(child.text());
+                        }
+                    }
+                }
+            }
+
+            return sb.toString().replaceAll("(<br>\\s*)+", "<br>");
         } catch (Exception e) {
             e.printStackTrace();
             return "오류로 인해 게시글을 불러올 수 없습니다.";
