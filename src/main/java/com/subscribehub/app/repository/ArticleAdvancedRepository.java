@@ -26,15 +26,13 @@ public class ArticleAdvancedRepository extends Querydsl4RepositorySupport {
         super(Article.class);
     }
 
-    public Page<ArticleDto> searchPagination(String userEmail,
+    public List<ArticleDto> searchPagination(String userEmail,
                                              Long siteId,
-                                             Pageable pageable,
                                              List<String> keywordList,
                                              LocalDateTime startDate,
                                              LocalDateTime endDate
                                              ) {
-        return applyPagination(pageable, contentQuery -> contentQuery
-                .select(new QArticleDto(article.articleNum, article.url, userSite.nickname,
+        return select(new QArticleDto(article.articleNum, article.url, userSite.nickname,
                         article.title, article.writer, article.written_date,
                         article.viewCount, article.recommendCount, article.commentCount))
                 .from(article)
@@ -46,18 +44,9 @@ public class ArticleAdvancedRepository extends Querydsl4RepositorySupport {
                         titleContainsKeywords(keywordList),
                         siteEq(siteId),
                         timeBetween(startDate, endDate)
-                ), countQuery -> countQuery
-                .selectFrom(article)
-                .join(article.userSite, userSite)
-                .join(article.site, site)
-                .join(article.user, user)
-                .where(
-                        emailEq(userEmail),
-                        titleContainsKeywords(keywordList),
-                        siteEq(siteId),
-                        timeBetween(startDate, endDate)
-                )
-        );
+                ).orderBy(
+                        article.written_date.desc()
+                ).fetch();
     }
 
     private BooleanExpression timeBetween(LocalDateTime startDate, LocalDateTime endDate) {

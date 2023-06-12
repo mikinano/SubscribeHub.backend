@@ -40,7 +40,7 @@ public class CrawlerService {
         if (siteId == 1) {
             dcCrawling(user, userSite);
         } else if (siteId == 2) {
-//            fmKorCrawling(user, userSite);
+            fmKorCrawling(user, userSite);
         }
     }
 
@@ -65,6 +65,85 @@ public class CrawlerService {
                         && !(checkArticle.hasClass("icon_ad")
                             || checkArticle.hasClass("icon_survey")
                             || checkArticle.hasClass("icon_notice"))) {
+                    // 게시글의 번호, 제목, 링크 가져오기
+                    Long articleNum = Long.parseLong(numberElement.text());
+
+                    Element linkElement = post.selectFirst(".gall_tit a");
+                    String title = linkElement.text();
+                    String link = siteUrl + linkElement.attr("href");
+
+                    // 게시글의 글쓴이 가져오기
+                    Element writerElement = post.selectFirst(".gall_writer");
+                    String writer = writerElement.text();
+
+                    // 게시글의 댓글수, 조회수, 추천수 가져오기
+                    long commentCount = 0L;
+                    Element replyElement = post.selectFirst(".gall_tit .reply_numbox");
+                    if (replyElement != null) {
+                        commentCount = Long.parseLong(replyElement.text().replaceAll("[\\[\\]]", ""));
+                    }
+
+                    Element viewElement = post.selectFirst(".gall_count");
+                    Long viewCount = Long.parseLong(viewElement.text());
+
+                    Element recommendElement = post.selectFirst(".gall_recommend");
+                    Long recommendCount = Long.parseLong(recommendElement.text());
+
+                    // 게시글의 날짜 가져오기
+                    Element dateElement = post.selectFirst(".gall_date");
+                    String dateString = dateElement.attr("title");
+
+                    LocalDateTime date = LocalDateTime.parse(dateString, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+                    articleList.add(new Article(user, userSite.getSite(), userSite, articleNum, link, title, writer, date, viewCount, recommendCount, commentCount));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        List<Long> articleNums = articleList.stream().map(Article::getArticleNum).distinct().collect(Collectors.toList());
+
+        // 한 번의 Select 쿼리로 해당 Article 가져오기
+        List<Article> existingArticles = articleRepository.findByUserSiteAndArticleNumIn(userSite, articleNums);
+
+        // 이미 존재하는 게시글인지 확인하여 저장하기
+        for (Article article : articleList) {
+            boolean flag = true;
+            for (Article existingArticle : existingArticles) {
+                if (existingArticle.getArticleNum().equals(article.getArticleNum())) {
+                    flag = false;
+                    break;
+                }
+            }
+
+            if (flag) {
+                articleRepository.save(article);
+            }
+        }
+    }
+
+    private void fmKorCrawling(User user, UserSite userSite) {
+        List<Article> articleList = new ArrayList<>();
+        final String siteUrl = "https://www.fmkorea.com/";
+
+        try {
+            // URL에 접속하여 HTML 문서 가져오기
+            Document doc = Jsoup.connect(userSite.getUrl()).get();
+
+            // 게시글 목록을 포함한 요소 선택하기
+            Elements posts = doc.select(".gall_list tbody tr");
+
+            // 각 게시글에 대한 정보 출력
+            for (Element post : posts) {
+                Element numberElement = post.selectFirst(".gall_num");
+                Element checkArticle = post.selectFirst(".gall_tit a em");
+
+                // 게시글 필터링
+                if (numberElement.text().matches("-?\\d+")
+                        && !(checkArticle.hasClass("icon_ad")
+                        || checkArticle.hasClass("icon_survey")
+                        || checkArticle.hasClass("icon_notice"))) {
                     // 게시글의 번호, 제목, 링크 가져오기
                     Long articleNum = Long.parseLong(numberElement.text());
 

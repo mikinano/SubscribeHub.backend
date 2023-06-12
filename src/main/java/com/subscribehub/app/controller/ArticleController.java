@@ -28,12 +28,11 @@ public class ArticleController {
     private final KeywordService keywordService;
 
     @GetMapping
-    public Page<ArticleDto> searchArticle(
+    public List<ArticleDto> searchArticle(
             @RequestParam(required = false) Long siteId,
             @RequestParam(name = "keyword", required = false) List<String> keywordList,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
-            Pageable pageable,
             Principal principal) throws Exception {
         List<UserSite> userSiteList = userSiteService.userSiteList(principal.getName());
 
@@ -41,7 +40,7 @@ public class ArticleController {
             crawlerService.doCrawling(userSite.getUser(), userSite);
         }
 
-        return articleService.searchPagination(siteId, pageable, principal.getName(), keywordList, startDate, endDate);
+        return articleService.searchPagination(siteId, principal.getName(), keywordList, startDate, endDate);
     }
 
     @GetMapping("/id/{articleId}")
