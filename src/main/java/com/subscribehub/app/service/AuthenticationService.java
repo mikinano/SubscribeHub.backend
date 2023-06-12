@@ -90,10 +90,10 @@ public class AuthenticationService {
             HttpServletResponse response
     ) throws IOException {
         final String userEmail;
-        if (refreshToken == null || !refreshToken.startsWith("Bearer ")) {
+        if (refreshToken == null) {
             return;
         }
-        refreshToken = refreshToken.substring(7);
+
         userEmail = jwtService.extractUsername(refreshToken);
         if (userEmail != null) {
             var user = this.repository.findByEmail(userEmail)
