@@ -2,6 +2,7 @@ package com.subscribehub.app.controller;
 
 import com.subscribehub.app.dto.AuthenticationRequest;
 import com.subscribehub.app.dto.AuthenticationResponse;
+import com.subscribehub.app.dto.RefreshTokenDto;
 import com.subscribehub.app.dto.RegisterRequest;
 import com.subscribehub.app.service.AuthenticationService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,9 +38,10 @@ public class AuthenticationController {
 
     @PostMapping("/new-access-token")
     public void newAccessToken(
+            @RequestBody RefreshTokenDto refreshTokenDto,
             HttpServletRequest request,
             HttpServletResponse response
     ) throws IOException {
-        service.refreshToken(request, response);
+        service.refreshToken(refreshTokenDto.getRefreshToken(), request, response);
     }
 }
