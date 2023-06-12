@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 
 @Data
 public class ArticleDto {
+    private Long articleId;
     private Long articleNum;
     private String url;
 
@@ -22,7 +23,8 @@ public class ArticleDto {
     private Long commentCount;
 
     @QueryProjection
-    public ArticleDto(Long articleNum, String url, String nickname, String title, String writer, LocalDateTime written_date, Long viewCount, Long recommendCount, Long commentCount) {
+    public ArticleDto(Long articleId, Long articleNum, String url, String nickname, String title, String writer, LocalDateTime written_date, Long viewCount, Long recommendCount, Long commentCount) {
+        this.articleId = articleId;
         this.articleNum = articleNum;
         this.url = url;
         this.nickname = nickname;

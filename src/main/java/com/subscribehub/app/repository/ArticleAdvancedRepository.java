@@ -32,7 +32,7 @@ public class ArticleAdvancedRepository extends Querydsl4RepositorySupport {
                                              LocalDateTime startDate,
                                              LocalDateTime endDate
                                              ) {
-        return select(new QArticleDto(article.articleNum, article.url, userSite.nickname,
+        return select(new QArticleDto(article.id, article.articleNum, article.url, userSite.nickname,
                         article.title, article.writer, article.written_date,
                         article.viewCount, article.recommendCount, article.commentCount))
                 .from(article)

@@ -19,7 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.net.URL;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -102,6 +104,10 @@ public class CrawlerService {
             e.printStackTrace();
         }
 
+        saveResult(userSite, articleList);
+    }
+
+    private void saveResult(UserSite userSite, List<Article> articleList) {
         List<Long> articleNums = articleList.stream().map(Article::getArticleNum).distinct().collect(Collectors.toList());
 
         // 한 번의 Select 쿼리로 해당 Article 가져오기
@@ -125,81 +131,54 @@ public class CrawlerService {
 
     private void fmKorCrawling(User user, UserSite userSite) {
         List<Article> articleList = new ArrayList<>();
-        final String siteUrl = "https://www.fmkorea.com/";
-
         try {
-            // URL에 접속하여 HTML 문서 가져오기
             Document doc = Jsoup.connect(userSite.getUrl()).get();
 
-            // 게시글 목록을 포함한 요소 선택하기
-            Elements posts = doc.select(".gall_list tbody tr");
-
-            // 각 게시글에 대한 정보 출력
+            Elements posts = doc.select(".content_dummy tbody tr");
             for (Element post : posts) {
-                Element numberElement = post.selectFirst(".gall_num");
-                Element checkArticle = post.selectFirst(".gall_tit a em");
+                if (!post.hasClass("notice")) {
+                    // 게시글 번호
+                    Element titleElem = post.selectFirst(".title a");
+                    long articleNum = Long.parseLong(titleElem.attr("href").replaceAll("/", ""));
+                    // 게시글 제목
+                    String title = titleElem.text();
 
-                // 게시글 필터링
-                if (numberElement.text().matches("-?\\d+")
-                        && !(checkArticle.hasClass("icon_ad")
-                        || checkArticle.hasClass("icon_survey")
-                        || checkArticle.hasClass("icon_notice"))) {
-                    // 게시글의 번호, 제목, 링크 가져오기
-                    Long articleNum = Long.parseLong(numberElement.text());
+                    // 게시글 링크
+                    String link = userSite.getUrl() + "/" + articleNum;
 
-                    Element linkElement = post.selectFirst(".gall_tit a");
-                    String title = linkElement.text();
-                    String link = siteUrl + linkElement.attr("href");
+                    // 게시글 글쓴이
+                    String writer = post.selectFirst(".author").text();
 
-                    // 게시글의 글쓴이 가져오기
-                    Element writerElement = post.selectFirst(".gall_writer");
-                    String writer = writerElement.text();
+                    // 게시글의 댓글수
+                    Long commentCount = post.selectFirst(".title a.replyNum") != null ? Long.parseLong(post.selectFirst(".title a.replyNum").text()) : 0;
 
-                    // 게시글의 댓글수, 조회수, 추천수 가져오기
-                    long commentCount = 0L;
-                    Element replyElement = post.selectFirst(".gall_tit .reply_numbox");
-                    if (replyElement != null) {
-                        commentCount = Long.parseLong(replyElement.text().replaceAll("[\\[\\]]", ""));
+                    // 게시글의 조회수
+                    Long viewCount = Long.parseLong(post.selectFirst(".m_no").text());
+
+                    // 게시글의 추천수
+                    Long recommendCount = post.selectFirst(".m_no_voted").text().matches("-?\\d+") ? Long.parseLong(post.selectFirst(".m_no_voted").text()) : 0;
+
+                    String dateTime = post.selectFirst(".time").text();
+                    LocalDateTime writtenDate;
+
+                    if (dateTime.contains(":")) { // 시간:분 형식인 경우
+                        LocalTime time = LocalTime.parse(dateTime, DateTimeFormatter.ofPattern("HH:mm"));
+                        LocalDate today = LocalDate.now();
+                        writtenDate = LocalDateTime.of(today, time);
+                    } else { // 연도.월.일 형식인 경우
+                        LocalDate date = LocalDate.parse(dateTime, DateTimeFormatter.ofPattern("yyyy.MM.dd"));
+                        LocalTime time = LocalTime.of(0, 0, 0);
+                        writtenDate = LocalDateTime.of(date, time);
                     }
 
-                    Element viewElement = post.selectFirst(".gall_count");
-                    Long viewCount = Long.parseLong(viewElement.text());
-
-                    Element recommendElement = post.selectFirst(".gall_recommend");
-                    Long recommendCount = Long.parseLong(recommendElement.text());
-
-                    // 게시글의 날짜 가져오기
-                    Element dateElement = post.selectFirst(".gall_date");
-                    String dateString = dateElement.attr("title");
-
-                    LocalDateTime date = LocalDateTime.parse(dateString, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-
-                    articleList.add(new Article(user, userSite.getSite(), userSite, articleNum, link, title, writer, date, viewCount, recommendCount, commentCount));
+                    articleList.add(new Article(user, userSite.getSite(), userSite, articleNum, link, title, writer, writtenDate, viewCount, recommendCount, commentCount));
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        List<Long> articleNums = articleList.stream().map(Article::getArticleNum).distinct().collect(Collectors.toList());
-
-        // 한 번의 Select 쿼리로 해당 Article 가져오기
-        List<Article> existingArticles = articleRepository.findByUserSiteAndArticleNumIn(userSite, articleNums);
-
-        // 이미 존재하는 게시글인지 확인하여 저장하기
-        for (Article article : articleList) {
-            boolean flag = true;
-            for (Article existingArticle : existingArticles) {
-                if (existingArticle.getArticleNum().equals(article.getArticleNum())) {
-                    flag = false;
-                    break;
-                }
-            }
-
-            if (flag) {
-                articleRepository.save(article);
-            }
-        }
+        saveResult(userSite, articleList);
     }
 
     public String getArticleContent(Long articleId) throws Exception {
@@ -293,37 +272,16 @@ public class CrawlerService {
                 for (JsonNode node : root) {
                     String url = siteUrl + node.get("mid").asText();
                     String nickname = node.get("label").asText();
-                    UserSiteDto userSiteDto = new UserSiteDto(url, nickname);
-                    userSiteDtoList.add(userSiteDto);
+                    if (nickname.contains(searchWord)) {
+                        UserSiteDto userSiteDto = new UserSiteDto(url, nickname);
+                        userSiteDtoList.add(userSiteDto);
+                    }
                 }
             }
-
             return userSiteDtoList;
         } catch (IOException e) {
             e.printStackTrace();
             return null;
         }
     }
-
-//    private List<UserSiteDto> searchPpUserSites(String searchWord) {
-//        final String siteUrl = "https://www.ppomppu.co.kr";
-//        List<UserSiteDto> list = new ArrayList<>();
-//
-//        try {
-//            String url = "https://www.ppomppu.co.kr/search_bbs.php?keyword=%C0%DA%C0%AF";
-//            Document doc = Jsoup.connect(url).get();
-//
-//            Elements boardItems = doc.select(".results_board#search_bbs_name_result .conts ul li");
-//            for (Element boardItem : boardItems) {
-//                String boardName = boardItem.selectFirst(".title").text();
-//                String boardLink = siteUrl + boardItem.selectFirst("a").attr("href");
-//
-//                list.add(new UserSiteDto(boardLink, boardName));
-//            }
-//            return list;
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return null;
-//        }
-//    }
 }
