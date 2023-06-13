@@ -8,6 +8,7 @@ import com.subscribehub.app.dto.AuthenticationRequest;
 import com.subscribehub.app.dto.AuthenticationResponse;
 import com.subscribehub.app.dto.RegisterRequest;
 import com.subscribehub.app.global.ErrorResponse;
+import com.subscribehub.app.global.exception.BlankRequestException;
 import com.subscribehub.app.global.exception.DuplicateUserException;
 import com.subscribehub.app.repository.UserRepository;
 import com.subscribehub.app.token.Token;
@@ -16,7 +17,6 @@ import com.subscribehub.app.token.TokenType;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.util.Optional;
 
+import static io.micrometer.common.util.StringUtils.isBlank;
 import static jakarta.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
@@ -40,6 +41,9 @@ public class AuthenticationService {
     private final AuthenticationManager authenticationManager;
 
     public void register(RegisterRequest request) {
+        if (isBlank(request.getEmail()) || isBlank(request.getPassword())) {
+            throw new BlankRequestException();
+        }
         var user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
