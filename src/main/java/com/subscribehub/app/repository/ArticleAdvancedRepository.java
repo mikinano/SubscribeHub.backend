@@ -3,6 +3,7 @@ package com.subscribehub.app.repository;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.subscribehub.app.domain.Article;
+import com.subscribehub.app.domain.User;
 import com.subscribehub.app.dto.ArticleDto;
 import com.subscribehub.app.dto.ArticleSearchCondition;
 import com.subscribehub.app.dto.QArticleDto;
@@ -26,7 +27,7 @@ public class ArticleAdvancedRepository extends Querydsl4RepositorySupport {
         super(Article.class);
     }
 
-    public List<ArticleDto> searchPagination(String userEmail,
+    public List<ArticleDto> searchArticle(User checkUser,
                                              Long siteId,
                                              List<String> keywordList,
                                              LocalDateTime startDate,
@@ -40,7 +41,7 @@ public class ArticleAdvancedRepository extends Querydsl4RepositorySupport {
                 .join(article.site, site)
                 .join(article.user, user)
                 .where(
-                        emailEq(userEmail),
+                        userEq(checkUser),
                         titleContainsKeywords(keywordList),
                         siteEq(siteId),
                         timeBetween(startDate, endDate)
@@ -53,8 +54,8 @@ public class ArticleAdvancedRepository extends Querydsl4RepositorySupport {
         return startDate == null && endDate == null ? null : article.written_date.between(startDate, endDate);
     }
 
-    private BooleanExpression emailEq(String email) {
-        return hasText(email) ? user.email.eq(email) : null;
+    private BooleanExpression userEq(User checkUser) {
+        return user.eq(checkUser);
     }
 
     private BooleanExpression titleContainsKeywords(List<String> keywordList) {

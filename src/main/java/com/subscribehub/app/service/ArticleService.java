@@ -1,6 +1,7 @@
 package com.subscribehub.app.service;
 
 import com.subscribehub.app.domain.Article;
+import com.subscribehub.app.domain.User;
 import com.subscribehub.app.domain.UserSite;
 import com.subscribehub.app.dto.ArticleDto;
 import com.subscribehub.app.dto.ArticleSearchCondition;
@@ -22,7 +23,7 @@ public class ArticleService {
     private final ArticleAdvancedRepository articleAdvancedRepository;
     private final KeywordService keywordService;
 
-    public List<ArticleDto> searchPagination(Long siteId, String userEmail, List<String> keywordList, LocalDateTime startDate, LocalDateTime endDate) {
-        return articleAdvancedRepository.searchPagination(userEmail, siteId, keywordList, startDate, endDate);
+    public List<ArticleDto> searchArticle(Long siteId, User user, List<String> keywordList, LocalDateTime startDate, LocalDateTime endDate) {
+        return articleAdvancedRepository.searchArticle(user, siteId, keywordList, startDate, endDate);
     }
 }
