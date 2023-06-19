@@ -31,7 +31,7 @@ public class SiteController {
 
     @GetMapping("/user-sites")
     public List<UserSiteDto> userSiteList(Principal principal) {
-        return userSiteService.userSiteList(principal.getName()).stream().map((userSite) -> new UserSiteDto(userSite.getUrl(), userSite.getNickname())).toList();
+        return userSiteService.userSiteList(principal.getName()).stream().map((userSite) -> new UserSiteDto(userSite.getSite().getId(), userSite.getUrl(), userSite.getNickname())).toList();
     }
 
     @PutMapping

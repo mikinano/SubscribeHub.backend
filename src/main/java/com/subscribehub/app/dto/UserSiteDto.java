@@ -7,12 +7,15 @@ import lombok.Data;
 
 @Data
 public class UserSiteDto {
+    private Long siteId;
+
     private String url;
 
     private String nickname;
 
     @QueryProjection
-    public UserSiteDto(String url, String nickname) {
+    public UserSiteDto(Long siteId, String url, String nickname) {
+        this.siteId = siteId;
         this.url = url;
         this.nickname = nickname;
     }

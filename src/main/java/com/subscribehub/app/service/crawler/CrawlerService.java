@@ -287,7 +287,7 @@ public class CrawlerService {
                 String name = anchor.text();
                 String href = anchor.attr("href");
 
-                list.add(new UserSiteDto(href, name));
+                list.add(new UserSiteDto(1L, href, name));
             }
 
             return list;
@@ -312,7 +312,7 @@ public class CrawlerService {
                     String url = siteUrl + node.get("mid").asText();
                     String nickname = node.get("label").asText();
                     if (nickname.contains(searchWord)) {
-                        UserSiteDto userSiteDto = new UserSiteDto(url, nickname);
+                        UserSiteDto userSiteDto = new UserSiteDto(2L, url, nickname);
                         userSiteDtoList.add(userSiteDto);
                     }
                 }
