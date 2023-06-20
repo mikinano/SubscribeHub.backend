@@ -66,7 +66,10 @@ public class CrawlerService {
                 if (numberElement.text().matches("-?\\d+")
                         && !(checkArticle.hasClass("icon_ad")
                             || checkArticle.hasClass("icon_survey")
-                            || checkArticle.hasClass("icon_notice"))) {
+                            || checkArticle.hasClass("icon_notice")
+                            || checkArticle.hasClass("icon_issue"))
+                        && !post.selectFirst(".gall_count").text().equals("-")
+                        && !post.selectFirst(".gall_recommend").text().equals("-")) {
                     // 게시글의 번호, 제목, 링크 가져오기
                     Long articleNum = Long.parseLong(numberElement.text());
 
@@ -101,7 +104,7 @@ public class CrawlerService {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println(e);
         }
 
         saveResult(userSite, articleList);
@@ -176,7 +179,7 @@ public class CrawlerService {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println(e);
         }
 
         saveResult(userSite, articleList);
@@ -215,7 +218,6 @@ public class CrawlerService {
             StringBuilder sb = new StringBuilder();
             if (element != null) {
                 for (Element child : element.children()) {
-                    System.out.println("child = " + child);
                     if (!child.hasText()) {
                         sb.append("<br>");
                     } else {
